@@ -1,0 +1,159 @@
+CC = gcc
+CFLAGS = -Wall -Wextra -Wno-unused-function -g
+
+all: bins libs stdlib tests
+
+bins: plrepl.exe pli.exe plast.exe
+
+libs: libpilang.dll libfront.dll libsup.dll
+
+stdlib: libmstr.dll
+
+tests: test_stack.exe test_gc.exe test_calc.exe test_assign.exe \
+       test_eval_expr.exe libffiex.dll libffiex2.dll
+
+plrepl.exe: plrepl.o libpilang.dll libfront.dll libsup.dll
+	$(CC) builtins.o plrepl.o \
+              dynload.o -L. -lpilang -lfront -lsup -o plrepl
+
+pli.exe: pli.o libpilang.dll libfront.dll libsup.dll
+	$(CC) pli.o builtins.o dynload.o \
+              -L. -lpilang -lfront -lsup -o pli
+
+plast.exe: plast.o libfront.dll libsup.dll
+	$(CC) plast.o -L. -lfront -lsup -o plast
+
+libffiex2.dll: ffiex2.o libpilang.dll libsup.dll
+	$(CC) ffiex2.o -L. -lpilang -lsup -shared -o libffiex2.dll
+
+libffiex.dll: ffiex.o libpilang.dll libsup.dll
+	$(CC) ffiex.o -L. -lpilang -lsup -shared -o libffiex.dll
+
+libmstr.dll: mutstr.o libpilang.dll libsup.dll
+	$(CC) mutstr.o -L. -lpilang -lsup -shared -o libmstr.dll
+
+libfront.dll: lexer.o parser.o ast.o tree_dump.o
+	$(CC) lexer.o parser.o ast.o tree_dump.o -shared \
+               -L. -lsup -o libfront.dll
+
+libpilang.dll: value.o stack.o plheap.o eval.o builtins.o libsup.dll
+	$(CC) value.o stack.o plheap.o eval.o builtins.o \
+               -L. -lsup -shared -o libpilang.dll
+
+libsup.dll: clist.o mstring.o dynload.o
+	$(CC) clist.o mstring.o dynload.o -shared -o libsup.dll
+
+test_eval_expr.exe: test_eval_expr.o \
+                    libpilang.dll libfront.dll libsup.dll
+	$(CC) test_eval_expr.o \
+              -L. -lpilang -lfront -lsup -o test_eval_expr.exe
+
+test_assign.exe: test_assign.o libpilang.dll libsup.dll
+	$(CC) test_assign.o -L. -lpilang -lsup -o test_assign.exe
+
+test_calc.exe: test_calc.o libpilang.dll libsup.dll
+	$(CC) test_calc.o -L. -lpilang -lsup -o test_calc.exe
+
+test_gc.exe: test_gc.o plheap.o libsup.dll
+	$(CC) test_gc.o plheap.o -L. -lsup -o test_gc.exe
+
+test_stack.exe: stack.o test_stack.o libsup.dll
+	$(CC) stack.o test_stack.o -L. -lsup -o test_stack.exe
+
+test_eval_expr.o: test/test_eval_expr.c y.tab.h
+	$(CC) -c -I include -I . test/test_eval_expr.c -o \
+        test_eval_expr.o $(CFLAGS)
+
+test_assign.o: test/test_assign.c
+	$(CC) -c -I include test/test_assign.c \
+              -o test_assign.o $(CFLAGS)
+
+test_calc.o: test/test_calc.c
+	$(CC) -c -I include test/test_calc.c -o test_calc.o $(CFLAGS)
+
+test_gc.o: test/test_gc.c
+	$(CC) -c -I include test/test_gc.c -o test_gc.o $(CFLAGS)
+
+test_stack.o: test/test_stack.c
+	$(CC) -c -I include test/test_stack.c -o test_stack.o $(CFLAGS)
+
+mutstr.o: stdlib/mutstr.c
+	$(CC) -c -I include -I . stdlib/mutstr.c -fPIC -o mutstr.o \
+              $(CFLAGS)
+
+ffiex2.o: sample/ffiex2.c
+	$(CC) -c -I include -I . sample/ffiex2.c -fPIC -o ffiex2.o \
+              $(CFLAGS)
+
+ffiex.o: sample/ffiex.c
+	$(CC) -c -I include -I . sample/ffiex.c -fPIC -o ffiex.o \
+              $(CFLAGS)
+
+plast.o: src/driver/plast.c y.tab.h
+	$(CC) -c -I include -I . src/driver/plast.c \
+              -o plast.o $(CFLAGS)
+
+pli.o: src/driver/pli.c y.tab.h
+	$(CC) -c -I include -I . src/driver/pli.c -o pli.o $(CFLAGS)
+
+plrepl.o: src/driver/plrepl.c y.tab.h
+	$(CC) -c -I include -I . src/driver/plrepl.c -o plrepl.o \
+        $(CFLAGS)
+
+dynload.o: src/support/dynload_win32.c y.tab.h
+	$(CC) -c -I include -I . src/support/dynload_win32.c \
+        -o dynload.o $(CFLAGS)
+
+builtins.o: src/eval/builtins.c y.tab.h
+	$(CC) -c -I include -I . src/eval/builtins.c -o builtins.o \
+        $(CFLAGS)
+
+value.o: src/eval/value.c y.tab.h
+	$(CC) -c -I include -I . src/eval/value.c -fPIC \
+        -o value.o $(CFLAGS)
+
+eval.o: src/eval/eval.c y.tab.h
+	$(CC) -c -I include -I . src/eval/eval.c -o eval.o $(CFLAGS)
+
+stack.o: src/eval/stack.c
+	$(CC) -c -I include src/eval/stack.c -fPIC -o stack.o $(CFLAGS)
+
+plheap.o: src/eval/heap.c
+	$(CC) -c -I include src/eval/heap.c -fPIC -o plheap.o $(CFLAGS)
+
+tree_dump.o: src/ast/tree_dump.c y.tab.h
+	$(CC) -c -I include -I . src/ast/tree_dump.c \
+        -o tree_dump.o $(CFLAGS)
+
+ast.o : src/ast/ast.c
+	$(CC) -c -I include src/ast/ast.c -o ast.o $(CFLAGS)
+
+clist.o : src/support/clist.c
+	$(CC) -c -I include src/support/clist.c -fPIC \
+              -o clist.o $(CFLAGS)
+
+mstring.o : src/support/mstring.c
+	$(CC) -c -I include src/support/mstring.c -fPIC \
+              -o mstring.o $(CFLAGS)
+
+parser.o : y.tab.c
+	$(CC) -c -I include y.tab.c -o parser.o $(CFLAGS)
+
+lexer.o : src/frontend/lexer.c y.tab.h
+	$(CC) -c -I include src/frontend/lexer.c -I . -o lexer.o $(CFLAGS)
+
+y.tab.c y.tab.h : src/frontend/parser.y
+	bison -d -v src/frontend/parser.y
+	if exist y.tab.c del /F /S /Q y.tab.c
+	if exist y.tab.h del /F /S /Q y.tab.h
+	rename parser.tab.c y.tab.c
+	rename parser.tab.h y.tab.h
+
+clean:
+	del /F /S /Q parser.output
+	del /F /S /Q parser.tab.*
+	del /F /S /Q y.tab.*
+	del /F /S /Q *.exe
+	del /F /S /Q *.dll
+	del /F /S /Q *.a
+	del /F /S /Q *.o
