@@ -7,7 +7,7 @@ companion but find it hard to get one. In Love-Lang, everything is
 a companion.
 
 Love-Lang was built on the basis of PiLang, a shiftless programming
-language. 
+language. PiLang is opensourced [here](https://dev.tencent.com/u/iceyself/p/pilang).
 
 ## Features
 ### No `Shift` key
